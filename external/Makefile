@@ -224,13 +224,13 @@ util-linux/config/config.rpath:
 	touch $@
 
 util-linux/configure: util-linux/configure.ac util-linux/config/config.guess util-linux/config/config.sub util-linux/config/config.rpath
-	-patch -p0 -N --reject-file=- < util-linux-android.diff
+	-cd util-linux && patch -p1 -N --reject-file=- < ../util-linux-android.diff
 	cd util-linux && ./autogen.sh
 
 util-linux/Makefile: util-linux/configure
 	cd util-linux && \
 		CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
-			./configure --host=$(HOST) --prefix=$(prefix) --enable-static --without-ncurses --disable-unshare --disable-rename --disable-wall --disable-mount --disable-fsck --disable-libblkid --disable-libmount --enable-pkgconfig
+			./configure --host=$(HOST) --prefix=$(prefix) --enable-static --without-ncurses --disable-unshare --disable-rename --disable-wall --disable-mount --disable-fsck --disable-libblkid --disable-libmount --enable-pkgconfig --without-python
 
 util-linux/shlibs/uuid/src/.libs/libuuid.a: util-linux/Makefile
 	$(MAKE) -C util-linux
