@@ -11,23 +11,58 @@ CWD = $(shell pwd)
 PROJECT_ROOT = $(CWD)
 EXTERNAL_ROOT = $(PROJECT_ROOT)/external
 
-# Android NDK setup
-NDK_BASE ?=  /usr/local/android-ndk
-NDK_PLATFORM_LEVEL ?= 21
-NDK_TOOLCHAIN_VERSION ?= 4.8
-NDK_SYSROOT=$(NDK_BASE)/platforms/android-$(NDK_PLATFORM_LEVEL)/arch-arm
-NDK_UNAME := $(shell uname -s | tr '[A-Z]' '[a-z]')
+# Android now has 64-bit and 32-bit versions of the NDK for GNU/Linux.  We
+# assume that the build platform uses the appropriate version, otherwise the
+# user building this will have to manually set NDK_PROCESSOR or NDK_TOOLCHAIN.
 CPU := $(shell uname -m)
 ifeq ($(CPU),x86_64)
   NDK_PROCESSOR=x86_64
 else
   NDK_PROCESSOR=x86
 endif
-NDK_TOOLCHAIN=$(NDK_BASE)/toolchains/arm-linux-androideabi-$(NDK_TOOLCHAIN_VERSION)/prebuilt/$(NDK_UNAME)-$(NDK_PROCESSOR)
 
-# to use the real HOST tag, you need the latest libtool files:
-# http://stackoverflow.com/questions/4594736/configure-does-not-recognize-androideabi
-HOST := arm-linux-androideabi
+# Android NDK setup
+NDK_BASE ?=  /usr/local/android-ndk
+NDK_PLATFORM_LEVEL ?= 21
+NDK_TOOLCHAIN_VERSION ?= 4.8
+APP_ABI ?= armeabi
+
+# PIEFLAGS for SDK 16/Android L must be set to -fPIE -pie, but can override for earlier targets 
+PIEFLAGS ?= -fPIE -pie
+
+NDK_ABI := $(APP_ABI)
+ifneq ($(filter arm%, $(APP_ABI)),)
+  NDK_ABI := arm
+endif
+ifneq ($(filter arm64%, $(APP_ABI)),)
+ NDK_ABI := arm64
+endif
+NDK_SYSROOT=$(NDK_BASE)/platforms/android-$(NDK_PLATFORM_LEVEL)/arch-$(NDK_ABI)
+NDK_UNAME := $(shell uname -s | tr '[A-Z]' '[a-z]')
+ifneq ($(filter mips%, $(NDK_ABI)),)
+ HOST := $(NDK_ABI)el-linux-android
+endif
+ifneq ($(filter arm64, $(NDK_ABI)),)
+ HOST := aarch64-linux-android
+endif
+ifneq ($(filter arm, $(NDK_ABI)),)
+ HOST := arm-linux-androideabi
+endif
+ifneq ($(filter x86, $(NDK_ABI)),)
+ HOST := i686-linux-android
+endif
+ifneq ($(filter x86_64, $(NDK_ABI)),)
+ HOST := x86_64-linux-android
+endif
+
+NDK_TOOLCHAIN := $(HOST)-$(NDK_TOOLCHAIN_VERSION)
+ifneq ($(filter x86%, $(NDK_ABI)),)
+ NDK_TOOLCHAIN := $(NDK_ABI)-$(NDK_TOOLCHAIN_VERSION)
+endif
+NDK_TOOLCHAIN_BASE=$(NDK_BASE)/toolchains/$(NDK_TOOLCHAIN)/prebuilt/$(NDK_UNAME)-$(NDK_PROCESSOR)
+
+# include Android's build flags
+include $(NDK_BASE)/toolchains/$(NDK_TOOLCHAIN)/setup.mk
 
 # install root for built files
 DESTDIR = $(CWD)
@@ -35,18 +70,19 @@ DESTDIR = $(CWD)
 prefix = 
 LOCAL := $(DESTDIR)$(prefix)
 
-PATH := ${PATH}:$(NDK_TOOLCHAIN)/bin:$(LOCAL)/bin
+PATH := ${PATH}:$(NDK_TOOLCHAIN_BASE)/bin:$(LOCAL)/bin
 
-CC := $(NDK_TOOLCHAIN)/bin/arm-linux-androideabi-gcc --sysroot=$(NDK_SYSROOT)
-CXX := $(NDK_TOOLCHAIN)/bin/arm-linux-androideabi-g++
-CPP := $(NDK_TOOLCHAIN)/bin/arm-linux-androideabi-cpp
-LD := $(NDK_TOOLCHAIN)/bin/arm-linux-androideabi-ld
-RANLIB := $(NDK_TOOLCHAIN)/bin/arm-linux-androideabi-ranlib
-STRIP := $(NDK_TOOLCHAIN)/bin/arm-linux-androideabi-strip \
-	--strip-unneeded -R .note -R .comment
+CC := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-gcc --sysroot=$(NDK_SYSROOT)
+CXX := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-g++ --sysroot=$(NDK_SYSROOT)
+CPP := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-cpp --sysroot=$(NDK_SYSROOT)
+LD := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-ld
+AR := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-ar
+RANLIB := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-ranlib
+STRIP := $(NDK_TOOLCHAIN_BASE)/bin/$(HOST)-strip \
+	--strip-unneeded -R .note -R .comment --strip-debug
 
-CFLAGS = -I$(LOCAL)/include
-LDFLAGS = -L$(LOCAL)/lib -Wl,--rpath,$(LOCAL)/lib
+CFLAGS = -I$(LOCAL)/include $(TARGET_CFLAGS)
+LDFLAGS = -L$(LOCAL)/lib -Wl,--rpath,$(LOCAL)/lib $(TARGET_LDFLAGS)
 #ALL_LDFLAGS = -Wl,--entry=main,-rpath=$(ANDROID_NDK_ROOT)/build/platforms/android-$(NDK_PLATFORM_VER)/arch-arm/usr/lib,-dynamic-linker=/system/bin/linker -L$(NDK_SYSROOT)/usr/lib  -nostdlib -lc -ldl
 #LIBS = -lc -ldl
 
@@ -221,7 +257,7 @@ cryptsetup/Makefile: cryptsetup/config.sub cryptsetup/config.guess
 	rm -f lib/*.la
 	cd cryptsetup && \
 	  autoreconf -i && \
-		CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
+		CC="$(CC)" CFLAGS="$(CFLAGS) $(PIEFLAGS)" LDFLAGS="$(LDFLAGS) $(PIEFLAGS)" \
 			./configure --host=$(HOST) --prefix=$(prefix) --enable-static --disable-selinux --enable-static-cryptsetup
 
 cryptsetup/src/cryptsetup.static: $(LOCAL)/lib/libgpg-error.a $(LOCAL)/lib/libgcrypt.a $(LOCAL)/lib/libdevmapper.a $(LOCAL)/lib/libpopt.a $(LOCAL)/lib/libuuid.a cryptsetup/Makefile
@@ -248,11 +284,11 @@ install_clean:
 
 sourcedirs_clean:
 	rm -rf -- $(TARBALLDIRS)
+	$(foreach dir, $(SOURCEDIRS), make -C $(dir) distclean;)
 
 clean: sourcedirs_clean install_clean
 
-distclean: clean tarballs-clean
-	$(foreach dir, $(SOURCEDIRS), make -C $(dir) distclean;)
+distclean: clean tarballs_clean
 
 .PHONY = libgpg-error-build libgcrypt-build lvm2-build popt-build	\
 	cryptosetup-build util-linux-build libgpg-error-install		\
