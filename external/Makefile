@@ -110,7 +110,7 @@ libgpg-error/Makefile: libgpg-error/config.sub libgpg-error/config.guess
 	cd libgpg-error && \
 		./autogen.sh && automake --add-missing && \
 		./configure CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
-			--disable-languages --enable-static --host=$(HOST)
+			--disable-languages --disable-doc --enable-static --host=$(HOST) --prefix=$(prefix)
 
 libgpg-error/src/.libs/libgpg-error.a: libgpg-error/Makefile
 	$(MAKE) -C libgpg-error
