@@ -159,7 +159,7 @@ libgcrypt-install: $(LOCAL)/lib/libgcrypt.a
 lvm2/Makefile:
 	cp config.sub lvm2/autoconf/config.sub
 	cp config.guess lvm2/autoconf/config.guess
-	-patch -N -p0 --reject-file=- < lvm2-android.diff
+	-cd lvm2 && patch -N -p1 --reject-file=- < ../lvm2-android.diff
 	cd lvm2 && \
 		autoreconf && \
 		CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" ./configure --host=$(HOST) --prefix=$(prefix) --enable-static_link --enable-lvm1_fallback --enable-fsadm --with-clvmd=cman --with-cluster=internal --with-pool=internal --with-user= --with-group= --with-dmdir=device-mapper.0 --with-device-uid=0 --with-device-gid=6 --with-device-mode=0660 --with-clvmd=none --with-pool=none --with-cluster=none --with-snapshots=none --with-mirrors=none --enable-pkgconfig
