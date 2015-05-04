@@ -1,5 +1,5 @@
 diff --git a/Makefile.in b/Makefile.in
-index e1178ee..19a3303 100644
+index 641b833..22ba4e1 100644
 --- a/Makefile.in
 +++ b/Makefile.in
 @@ -16,7 +16,7 @@ srcdir = @srcdir@
@@ -12,7 +12,7 @@ index e1178ee..19a3303 100644
  ifeq ("@UDEV_RULES@", "yes")
    SUBDIRS += udev
 diff --git a/configure.in b/configure.in
-index 611ab37..b7c94e6 100644
+index 70f3b78..61c9b66 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -89,7 +89,7 @@ AC_HEADER_SYS_WAIT
@@ -34,4 +34,14 @@ index 611ab37..b7c94e6 100644
 +  gettimeofday memset mkdir rmdir munmap setenv setlocale \
    strcasecmp strchr strcspn strspn strdup strncasecmp strerror strrchr \
    strstr strtol strtoul uname], , [AC_MSG_ERROR(bailing out)])
- AC_CHECK_FUNCS(siginterrupt)
+ AC_FUNC_ALLOCA
+@@ -1296,8 +1296,7 @@ if [[ \( "$LVM1" = shared -o "$POOL" = shared -o "$CLUSTER" = shared \
+ fi
+ 
+ ################################################################################
+-AC_CHECK_LIB([pthread], [pthread_mutex_lock],
+-	[PTHREAD_LIBS="-lpthread"], hard_bailout)
++AC_CHECK_FUNCS([pthread_mutex_lock], , hard_bailout)
+ 
+ ################################################################################
+ dnl -- Disable selinux
