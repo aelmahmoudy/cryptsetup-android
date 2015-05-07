@@ -122,7 +122,6 @@ $(LOCAL)/lib/libgpg-error.a: libgpg-error/src/.libs/libgpg-error.a
 
 libgpg-error-install: $(LOCAL)/lib/libgpg-error.a
 
-
 #------------------------------------------------------------------------------#
 # 
 
@@ -270,21 +269,20 @@ $(LOCAL)/sbin/cryptsetup: cryptsetup/src/cryptsetup.static
 
 cryptsetup-install: $(LOCAL)/sbin/cryptsetup
 
-cryptsetup-clean:
-	-$(MAKE) -C cryptsetup clean
-
 #------------------------------------------------------------------------------#
 # clean
+
+%-clean:
+	cd $* && git reset --hard && git clean -dfx
 
 tarballs_clean:
 	rm -f -- rm *.sig *.bz2 *.gz *.tgz *.asc
 
 install_clean:
-	rm -rf -- bin include lib sbin share
+	rm -rf -- bin include lib sbin share usr etc
 
-sourcedirs_clean:
+sourcedirs_clean: libgpg-error-clean libgcrypt-clean lvm2-clean util-linux-clean
 	rm -rf -- $(TARBALLDIRS)
-	$(foreach dir, $(SOURCEDIRS), make -C $(dir) distclean;)
 
 clean: sourcedirs_clean install_clean
 
