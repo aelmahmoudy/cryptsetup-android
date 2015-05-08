@@ -28,7 +28,8 @@ NDK_TOOLCHAIN_VERSION ?= 4.8
 APP_ABI ?= armeabi
 
 # PIEFLAGS for SDK 16/Android L must be set to -fPIE -pie, but can override for earlier targets 
-PIEFLAGS ?= -fPIE -pie
+#PIEFLAGS ?= -fPIE -pie
+PIEFLAGS ?=
 
 NDK_ABI := $(APP_ABI)
 ifneq ($(filter arm%, $(APP_ABI)),)
