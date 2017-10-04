@@ -24,7 +24,7 @@ endif
 # Android NDK setup
 NDK_BASE ?=  /usr/local/android-ndk
 NDK_PLATFORM_LEVEL ?= 21
-NDK_TOOLCHAIN_VERSION ?= 4.8
+NDK_TOOLCHAIN_VERSION ?= 4.9
 APP_ABI ?= armeabi
 
 # PIEFLAGS for SDK 16/Android L must be set to -fPIE -pie, but can override for earlier targets 
@@ -63,7 +63,7 @@ endif
 NDK_TOOLCHAIN_BASE=$(NDK_BASE)/toolchains/$(NDK_TOOLCHAIN)/prebuilt/$(NDK_UNAME)-$(NDK_PROCESSOR)
 
 # include Android's build flags
-include $(NDK_BASE)/toolchains/$(NDK_TOOLCHAIN)/setup.mk
+include $(NDK_BASE)/build/core/toolchains/$(NDK_TOOLCHAIN)/setup.mk
 
 # install root for built files
 DESTDIR = $(CWD)
